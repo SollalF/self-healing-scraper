@@ -48,9 +48,7 @@ async def scrape_url(
     if record is None:
         logger.info("No parser for %s — creating via AI", url)
         generated = await create_parser(page, domain=domain, settings=cfg)
-        record = await store.create_from_generated(
-            generated, status=ParserStatus.DRAFT
-        )
+        record = await store.create_from_generated(generated, status=ParserStatus.DRAFT)
         created_parser = True
         # Re-fetch with wait_for / js hints from the new definition.
         definition = store.definition_of(record)

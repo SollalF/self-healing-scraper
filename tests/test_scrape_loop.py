@@ -61,9 +61,7 @@ async def test_scrape_creates_parser_when_missing(
     store = InMemoryParserStore()
 
     with (
-        patch(
-            "self_healing_scraper.scrape.fetch_page", AsyncMock(return_value=page)
-        ),
+        patch("self_healing_scraper.scrape.fetch_page", AsyncMock(return_value=page)),
         patch(
             "self_healing_scraper.scrape.create_parser",
             AsyncMock(return_value=generated),

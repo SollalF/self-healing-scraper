@@ -31,9 +31,7 @@ class ScrapeDomain:
     """Specialization knobs for a scraping product (news, jobs, etc.)."""
 
     prompts: DomainPrompts
-    default_required_fields: list[str] = field(
-        default_factory=lambda: ["title", "url"]
-    )
+    default_required_fields: list[str] = field(default_factory=lambda: ["title", "url"])
     known_checks: frozenset[str] = field(default_factory=frozenset)
     extra_validators: dict[str, CheckFn] = field(default_factory=dict)
     item_builder: Callable[[dict[str, Any]], Any] | None = None

@@ -23,9 +23,7 @@ async def test_memory_store_roundtrip() -> None:
         definition=ParserDefinition(fields={}),
         validations=ValidationSuite(checks=[]),
     )
-    record = await store.create_from_generated(
-        generated, status=ParserStatus.DRAFT
-    )
+    record = await store.create_from_generated(generated, status=ParserStatus.DRAFT)
     found = await store.find_by_url("https://example.com/a")
     assert found is not None
     assert found.id == record.id

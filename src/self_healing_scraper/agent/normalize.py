@@ -39,18 +39,14 @@ def normalize_generated_payload(
         checks = validations.get("checks")
         if isinstance(checks, list):
             kept = [
-                c
-                for c in checks
-                if isinstance(c, dict) and c.get("type") in allowed
+                c for c in checks if isinstance(c, dict) and c.get("type") in allowed
             ]
             # Ensure a minimal useful suite remains.
             types = {c["type"] for c in kept}
             if "min_count" not in types:
                 kept.insert(0, {"type": "min_count", "value": 1})
             if "required_fields" not in types:
-                kept.append(
-                    {"type": "required_fields", "fields": list(required)}
-                )
+                kept.append({"type": "required_fields", "fields": list(required)})
             data["validations"] = {**validations, "checks": kept}
     elif validations is None:
         data["validations"] = {
