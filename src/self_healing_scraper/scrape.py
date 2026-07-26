@@ -12,7 +12,7 @@ from self_healing_scraper.fetch.crawler import fetch_page
 from self_healing_scraper.models import ParserStatus, ScrapeResult
 from self_healing_scraper.runtime.executor import execute_parser
 from self_healing_scraper.runtime.validators import run_validations
-from self_healing_scraper.settings import Settings, get_settings
+from self_healing_scraper.settings import Settings
 from self_healing_scraper.store import ParserStore
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ async def scrape_url(
     settings: Settings | None = None,
 ) -> ScrapeResult:
     """Scrape a URL using a stored or newly created self-healing parser."""
-    cfg = settings or get_settings()
+    cfg = settings or Settings()
     url = normalize_url(url)
 
     record = await store.find_by_url(url)
@@ -171,9 +171,8 @@ async def scrape_urls(
     domain: ScrapeDomain,
     settings: Settings | None = None,
 ) -> list[ScrapeResult]:
+    cfg = settings or Settings()
     results: list[ScrapeResult] = []
     for url in urls:
-        results.append(
-            await scrape_url(url, store=store, domain=domain, settings=settings)
-        )
+        results.append(await scrape_url(url, store=store, domain=domain, settings=cfg))
     return results

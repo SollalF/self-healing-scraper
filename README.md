@@ -57,14 +57,30 @@ asyncio.run(main())
 
 ## Configuration
 
-| Env | Default | Purpose |
-|-----|---------|---------|
-| `LLM_API_KEY` | — | Required to create/repair parsers |
-| `LLM_MODEL` | `gpt-4o` | Model for parser agent |
-| `LLM_BASE_URL` | — | OpenAI-compatible API base |
-| `MAX_REPAIR_ATTEMPTS` | `3` | Self-heal loop limit |
-| `CRAWL_TIMEOUT_MS` | `30000` | Page load timeout |
-| `PAGE_SAMPLE_CHARS` | `12000` | HTML sample size sent to the AI |
+The engine does **not** load `.env` or process environment variables. Pass a
+[`Settings`](src/self_healing_scraper/settings.py) instance (or rely on defaults):
+
+```python
+from self_healing_scraper.settings import Settings
+
+settings = Settings(
+    llm_api_key="...",
+    llm_model="gpt-4o",
+    max_repair_attempts=3,
+)
+```
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `llm_api_key` | `""` | Required to create/repair parsers |
+| `llm_model` | `gpt-4o` | Model for parser agent |
+| `llm_base_url` | `""` | OpenAI-compatible API base |
+| `max_repair_attempts` | `3` | Self-heal loop limit |
+| `crawl_timeout_ms` | `30000` | Page load timeout |
+| `page_sample_chars` | `12000` | HTML sample size sent to the AI |
+
+Applications (e.g. news scrapers) typically load these from their own `.env` /
+settings layer and pass them into `scrape_url`.
 
 ## Layout
 

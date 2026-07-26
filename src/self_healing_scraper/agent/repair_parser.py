@@ -15,7 +15,7 @@ from self_healing_scraper.models import (
     ValidationResult,
     ValidationSuite,
 )
-from self_healing_scraper.settings import Settings, get_settings
+from self_healing_scraper.settings import Settings
 
 
 async def repair_parser(
@@ -30,7 +30,7 @@ async def repair_parser(
     domain: ScrapeDomain,
     settings: Settings | None = None,
 ) -> GeneratedParser:
-    cfg = settings or get_settings()
+    cfg = settings or Settings()
     current = {
         "name": name,
         "url_pattern": url_pattern,

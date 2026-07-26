@@ -6,7 +6,7 @@ import logging
 
 from self_healing_scraper.asyncio_compat import run_playwright
 from self_healing_scraper.models import PageContent, ParserDefinition
-from self_healing_scraper.settings import Settings, get_settings
+from self_healing_scraper.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ async def fetch_page(
     settings: Settings | None = None,
 ) -> PageContent:
     """Fetch a URL with JS rendering when needed."""
-    cfg = settings or get_settings()
+    cfg = settings or Settings()
     js_enabled = True if definition is None else definition.js_enabled
     wait_for = None if definition is None else definition.wait_for
 

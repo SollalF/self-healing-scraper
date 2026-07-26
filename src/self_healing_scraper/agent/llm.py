@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from self_healing_scraper.settings import Settings, get_settings
+from self_healing_scraper.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ async def complete_json(
     user: str,
     settings: Settings | None = None,
 ) -> dict[str, Any]:
-    cfg = settings or get_settings()
+    cfg = settings or Settings()
     if not cfg.llm_api_key:
         raise RuntimeError("LLM_API_KEY is required to create or repair parsers")
 

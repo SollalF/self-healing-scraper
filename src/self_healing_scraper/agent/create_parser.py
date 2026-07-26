@@ -8,7 +8,7 @@ from self_healing_scraper.agent.llm import complete_json
 from self_healing_scraper.agent.normalize import normalize_generated_payload
 from self_healing_scraper.domain import ScrapeDomain
 from self_healing_scraper.models import GeneratedParser, PageContent, PageKind
-from self_healing_scraper.settings import Settings, get_settings
+from self_healing_scraper.settings import Settings
 
 
 def _page_kind_hint(url: str) -> str:
@@ -40,7 +40,7 @@ async def create_parser(
     domain: ScrapeDomain,
     settings: Settings | None = None,
 ) -> GeneratedParser:
-    cfg = settings or get_settings()
+    cfg = settings or Settings()
     # Markdown from Crawl4AI is usually denser for listings than truncated HTML.
     markdown = (page.markdown or "")[: cfg.page_sample_chars]
     sample = _html_sample(page.html, min(cfg.page_sample_chars, 8000))
