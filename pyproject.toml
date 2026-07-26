@@ -2,7 +2,22 @@
 name = "self-healing-scraper"
 version = "0.1.0"
 description = "Generic self-healing declarative web scraper engine"
+readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+authors = [
+    { name = "SollalF" },
+]
+keywords = ["scraping", "self-healing", "crawl4ai", "playwright"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "crawl4ai>=0.7.0",
@@ -12,6 +27,12 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "typing-extensions>=4.5.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/SollalF/self-healing-scraper"
+Repository = "https://github.com/SollalF/self-healing-scraper"
+Issues = "https://github.com/SollalF/self-healing-scraper/issues"
+Changelog = "https://github.com/SollalF/self-healing-scraper/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]
