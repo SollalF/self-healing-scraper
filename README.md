@@ -75,5 +75,8 @@ tests/
 
 ```bash
 uv sync
+uv run pre-commit install
 uv run pytest
 ```
+
+CI runs `pre-commit` (ruff + ty + basic hooks) and pytest on every push/PR.
