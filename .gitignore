@@ -1,0 +1,19 @@
+.env
+__pycache__/
+.DS_Store
+.venv/
+.nimbella
+.deployed
+logs/
+
+# uv / tooling
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.ty_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+test_results/
