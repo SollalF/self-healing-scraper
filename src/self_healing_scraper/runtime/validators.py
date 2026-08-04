@@ -49,67 +49,12 @@ def run_validations(
     *,
     domain: ScrapeDomain | None = None,
 ) -> ValidationResult:
-    suite = migrate_legacy_checks(suite)
     failures: list[ValidationFailure] = []
     for check in suite.checks:
         failure = _run_check(check, items, page, domain=domain)
         if failure:
             failures.append(failure)
     return ValidationResult(passed=not failures, failures=failures)
-
-
-_DESCRIPTION_BOILERPLATE = frozenset(
-    {
-        "no description available.",
-        "no description available",
-        "read more",
-        "subscribe",
-    }
-)
-
-
-def migrate_legacy_checks(suite: ValidationSuite) -> ValidationSuite:
-    """Rewrite retired news aliases onto core check types."""
-    rewritten: list[ValidationCheck] = []
-    changed = False
-    for check in suite.checks:
-        migrated = _migrate_legacy_check(check)
-        if migrated is not check:
-            changed = True
-        rewritten.append(migrated)
-    if not changed:
-        return suite
-    return suite.model_copy(update={"checks": rewritten})
-
-
-def _migrate_legacy_check(check: ValidationCheck) -> ValidationCheck:
-    if check.type == "title_min_length":
-        return check.model_copy(
-            update={
-                "type": "field_min_length",
-                "field": "title",
-                "value": check.value if check.value is not None else 5,
-            }
-        )
-    if check.type == "content_min_length":
-        return check.model_copy(
-            update={
-                "type": "field_min_length",
-                "field": "content",
-                "value": check.value if check.value is not None else 40,
-            }
-        )
-    if check.type == "description_not_boilerplate":
-        banned = set(_DESCRIPTION_BOILERPLATE)
-        banned |= {v.strip().lower() for v in (check.values or []) if v}
-        return check.model_copy(
-            update={
-                "type": "not_equals",
-                "field": "description",
-                "values": sorted(banned),
-            }
-        )
-    return check
 
 
 def _core_handlers() -> dict[str, CheckFn]:

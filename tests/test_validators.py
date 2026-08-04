@@ -81,23 +81,3 @@ def test_date_parseable_skips_empty(sample_items: list[dict]) -> None:
     )
     result = run_validations(items, suite, None)
     assert result.passed
-
-
-def test_migrate_legacy_title_min_length(sample_items: list[dict]) -> None:
-    items = list(sample_items)
-    items[0] = {**items[0], "title": "Hi"}
-    suite = ValidationSuite(checks=[ValidationCheck(type="title_min_length", value=5)])
-    result = run_validations(items, suite, None)
-    assert not result.passed
-    assert result.failures[0].check_type == "field_min_length"
-
-
-def test_migrate_legacy_description_boilerplate(sample_items: list[dict]) -> None:
-    items = list(sample_items)
-    items[0] = {**items[0], "description": "Read more"}
-    suite = ValidationSuite(
-        checks=[ValidationCheck(type="description_not_boilerplate")]
-    )
-    result = run_validations(items, suite, None)
-    assert not result.passed
-    assert result.failures[0].check_type == "not_equals"
