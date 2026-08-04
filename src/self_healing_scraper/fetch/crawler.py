@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from self_healing_scraper.asyncio_compat import run_playwright
 from self_healing_scraper.models import PageContent, ParserDefinition
 from self_healing_scraper.settings import Settings
 
@@ -22,9 +21,7 @@ async def fetch_page(
     wait_for = None if definition is None else definition.wait_for
 
     logger.info("Fetching %s (js_enabled=%s, wait_for=%s)", url, js_enabled, wait_for)
-    return await run_playwright(
-        lambda: _crawl(url, js_enabled=js_enabled, wait_for=wait_for, settings=cfg)
-    )
+    return await _crawl(url, js_enabled=js_enabled, wait_for=wait_for, settings=cfg)
 
 
 async def _crawl(

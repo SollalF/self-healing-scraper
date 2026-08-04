@@ -10,7 +10,7 @@ from self_healing_scraper.models import (
     ParserStatus,
     ValidationSuite,
 )
-from self_healing_scraper.store import InMemoryParserStore
+from self_healing_scraper.testing import InMemoryParserStore
 
 
 @pytest.mark.asyncio

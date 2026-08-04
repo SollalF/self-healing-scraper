@@ -31,7 +31,7 @@ uv run playwright install chromium
 ```python
 import asyncio
 from self_healing_scraper import scrape_url, ScrapeDomain, DomainPrompts
-from self_healing_scraper.store import InMemoryParserStore
+from self_healing_scraper.testing import InMemoryParserStore
 
 domain = ScrapeDomain(
     prompts=DomainPrompts(
@@ -88,6 +88,7 @@ settings layer and pass them into `scrape_url`.
 src/self_healing_scraper/
   scrape.py       # heal loop
   store.py        # ParserStore Protocol + helpers
+  testing.py      # InMemoryParserStore for tests / smoke scripts
   domain.py       # ScrapeDomain / DomainPrompts
   fetch/          # Crawl4AI wrapper
   runtime/        # executor + core validators

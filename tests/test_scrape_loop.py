@@ -18,7 +18,7 @@ from self_healing_scraper.models import (
 )
 from self_healing_scraper.scrape import scrape_url
 from self_healing_scraper.settings import Settings
-from self_healing_scraper.store import InMemoryParserStore
+from self_healing_scraper.testing import InMemoryParserStore
 
 
 def _generated() -> GeneratedParser:

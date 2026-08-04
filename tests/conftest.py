@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from self_healing_scraper.asyncio_compat import configure_event_loop_policy
 from self_healing_scraper.domain import DomainPrompts, ScrapeDomain
 from self_healing_scraper.models import (
     FieldExtractor,
@@ -13,8 +12,6 @@ from self_healing_scraper.models import (
     ValidationCheck,
     ValidationSuite,
 )
-
-configure_event_loop_policy()
 
 
 @pytest.fixture
