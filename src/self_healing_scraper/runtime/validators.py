@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -35,6 +36,7 @@ CORE_KNOWN_CHECKS = frozenset(
         "field_not_in",
         "url_matches",
         "field_matches",
+        "date_parseable",
         "no_cookie_wall",
     }
 )
@@ -47,12 +49,67 @@ def run_validations(
     *,
     domain: ScrapeDomain | None = None,
 ) -> ValidationResult:
+    suite = migrate_legacy_checks(suite)
     failures: list[ValidationFailure] = []
     for check in suite.checks:
         failure = _run_check(check, items, page, domain=domain)
         if failure:
             failures.append(failure)
     return ValidationResult(passed=not failures, failures=failures)
+
+
+_DESCRIPTION_BOILERPLATE = frozenset(
+    {
+        "no description available.",
+        "no description available",
+        "read more",
+        "subscribe",
+    }
+)
+
+
+def migrate_legacy_checks(suite: ValidationSuite) -> ValidationSuite:
+    """Rewrite retired news aliases onto core check types."""
+    rewritten: list[ValidationCheck] = []
+    changed = False
+    for check in suite.checks:
+        migrated = _migrate_legacy_check(check)
+        if migrated is not check:
+            changed = True
+        rewritten.append(migrated)
+    if not changed:
+        return suite
+    return suite.model_copy(update={"checks": rewritten})
+
+
+def _migrate_legacy_check(check: ValidationCheck) -> ValidationCheck:
+    if check.type == "title_min_length":
+        return check.model_copy(
+            update={
+                "type": "field_min_length",
+                "field": "title",
+                "value": check.value if check.value is not None else 5,
+            }
+        )
+    if check.type == "content_min_length":
+        return check.model_copy(
+            update={
+                "type": "field_min_length",
+                "field": "content",
+                "value": check.value if check.value is not None else 40,
+            }
+        )
+    if check.type == "description_not_boilerplate":
+        banned = set(_DESCRIPTION_BOILERPLATE)
+        banned |= {v.strip().lower() for v in (check.values or []) if v}
+        return check.model_copy(
+            update={
+                "type": "not_equals",
+                "field": "description",
+                "values": sorted(banned),
+            }
+        )
+    return check
 
 
 def _core_handlers() -> dict[str, CheckFn]:
@@ -66,6 +123,7 @@ def _core_handlers() -> dict[str, CheckFn]:
         "field_not_in": _check_not_equals,
         "url_matches": _check_url_matches,
         "field_matches": _check_field_matches,
+        "date_parseable": _check_date_parseable,
         "no_cookie_wall": _check_no_cookie_wall,
     }
 
@@ -240,6 +298,49 @@ def _check_field_matches(
             details={"values": bad[:10], "pattern": pattern, "field": field},
         )
     return None
+
+
+def _check_date_parseable(
+    check: ValidationCheck,
+    items: list[dict[str, Any]],
+    page: PageContent | None,
+) -> ValidationFailure | None:
+    field = check.field or "published_date"
+    bad = []
+    for item in items:
+        value = item.get(field)
+        if value is None or value == "":
+            continue
+        if not _looks_like_date(str(value)):
+            bad.append(str(value))
+    if bad:
+        return ValidationFailure(
+            check_type=check.type,
+            message=check.message or f"Field '{field}' is not a parseable date",
+            details={"values": bad[:10]},
+        )
+    return None
+
+
+def _looks_like_date(value: str) -> bool:
+    value = value.strip()
+    candidates = [
+        "%Y-%m-%d",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%SZ",
+        "%b %d, %Y",
+        "%B %d, %Y",
+        "%d %b %Y",
+        "%d %B %Y",
+    ]
+    for fmt in candidates:
+        try:
+            datetime.strptime(value[:26], fmt)
+            return True
+        except ValueError:
+            continue
+    return bool(re.match(r"^\d{4}-\d{2}-\d{2}", value))
 
 
 def _check_no_cookie_wall(
