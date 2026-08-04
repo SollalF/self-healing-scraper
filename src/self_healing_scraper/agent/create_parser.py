@@ -5,9 +5,15 @@ from __future__ import annotations
 from urllib.parse import urlparse
 
 from self_healing_scraper.agent.llm import complete_json
-from self_healing_scraper.agent.normalize import normalize_generated_payload
+from self_healing_scraper.agent.schema import generated_parser_json_schema
 from self_healing_scraper.domain import ScrapeDomain
-from self_healing_scraper.models import GeneratedParser, PageContent, PageKind
+from self_healing_scraper.models import (
+    GeneratedParser,
+    PageContent,
+    PageKind,
+    ValidationCheck,
+    ValidationSuite,
+)
 from self_healing_scraper.settings import Settings
 
 
@@ -35,6 +41,27 @@ def _html_sample(html: str, limit: int) -> str:
     return html
 
 
+def ensure_minimal_validations(
+    parser: GeneratedParser,
+    *,
+    required_fields: list[str],
+) -> GeneratedParser:
+    """JSON Schema cannot require specific check types inside an array."""
+    types = {check.type for check in parser.validations.checks}
+    checks = list(parser.validations.checks)
+    if "min_count" not in types:
+        checks.insert(0, ValidationCheck(type="min_count", value=1))
+    if "required_fields" not in types:
+        checks.append(
+            ValidationCheck(type="required_fields", fields=list(required_fields))
+        )
+    if checks == list(parser.validations.checks):
+        return parser
+    return parser.model_copy(
+        update={"validations": ValidationSuite(checks=checks)},
+    )
+
+
 async def create_parser(
     page: PageContent,
     domain: ScrapeDomain,
@@ -44,6 +71,7 @@ async def create_parser(
     # Markdown from Crawl4AI is usually denser for listings than truncated HTML.
     markdown = (page.markdown or "")[: cfg.page_sample_chars]
     sample = _html_sample(page.html, min(cfg.page_sample_chars, 8000))
+    known_checks = known_checks_for_domain(domain)
     payload = await complete_json(
         system=domain.prompts.create_system,
         user=domain.prompts.create_user_template.format(
@@ -53,13 +81,12 @@ async def create_parser(
             markdown_sample=markdown,
         ),
         settings=cfg,
+        json_schema=generated_parser_json_schema(known_checks),
+        schema_name="generated_parser",
     )
-    return GeneratedParser.model_validate(
-        normalize_generated_payload(
-            payload,
-            known_checks=known_checks_for_domain(domain),
-            default_required_fields=domain.default_required_fields,
-        )
+    return ensure_minimal_validations(
+        GeneratedParser.model_validate(payload),
+        required_fields=domain.default_required_fields,
     )
 
 

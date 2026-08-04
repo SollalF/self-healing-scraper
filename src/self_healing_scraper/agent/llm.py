@@ -1,4 +1,8 @@
-"""Thin OpenAI-compatible LLM client wrapper."""
+"""Thin OpenAI-compatible LLM client wrapper.
+
+Requires an API that supports ``response_format`` with ``type: json_schema``
+(OpenAI Structured Outputs, Kimi/Moonshot MFJS, etc.).
+"""
 
 from __future__ import annotations
 
@@ -9,21 +13,6 @@ from typing import Any
 from self_healing_scraper.settings import Settings
 
 logger = logging.getLogger(__name__)
-
-KIMI_CODING_BASE_URL = "https://api.kimi.com/coding/v1"
-MOONSHOT_BASE_URL = "https://api.moonshot.ai/v1"
-
-
-def resolve_llm_base_url(api_key: str, configured: str) -> str | None:
-    """Pick the right OpenAI-compatible base URL for the key type."""
-    key = api_key.strip()
-    base = configured.strip()
-    if key.startswith("sk-kimi-"):
-        # Kimi Code keys are rejected by api.moonshot.ai
-        if not base or "moonshot.ai" in base:
-            return KIMI_CODING_BASE_URL
-        return base
-    return base or None
 
 
 def _default_headers(base_url: str | None) -> dict[str, str] | None:
@@ -37,7 +26,9 @@ async def complete_json(
     *,
     system: str,
     user: str,
+    json_schema: dict[str, Any],
     settings: Settings | None = None,
+    schema_name: str = "response",
 ) -> dict[str, Any]:
     cfg = settings or Settings()
     if not cfg.llm_api_key:
@@ -45,7 +36,7 @@ async def complete_json(
 
     from openai import AsyncOpenAI
 
-    base_url = resolve_llm_base_url(cfg.llm_api_key, cfg.llm_base_url)
+    base_url = cfg.llm_base_url.strip() or None
     headers = _default_headers(base_url)
     logger.info("LLM request model=%s base_url=%s", cfg.llm_model, base_url)
 
@@ -56,7 +47,14 @@ async def complete_json(
     )
     create_kwargs: dict[str, Any] = {
         "model": cfg.llm_model,
-        "response_format": {"type": "json_object"},
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": schema_name,
+                "strict": True,
+                "schema": json_schema,
+            },
+        },
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},

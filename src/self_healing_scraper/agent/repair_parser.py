@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 
-from self_healing_scraper.agent.create_parser import known_checks_for_domain
+from self_healing_scraper.agent.create_parser import (
+    ensure_minimal_validations,
+    known_checks_for_domain,
+)
 from self_healing_scraper.agent.llm import complete_json
-from self_healing_scraper.agent.normalize import normalize_generated_payload
+from self_healing_scraper.agent.schema import generated_parser_json_schema
 from self_healing_scraper.domain import ScrapeDomain
 from self_healing_scraper.models import (
     GeneratedParser,
@@ -38,6 +41,7 @@ async def repair_parser(
         "definition": definition.model_dump(),
         "validations": validations.model_dump(),
     }
+    known_checks = known_checks_for_domain(domain)
     payload = await complete_json(
         system=domain.prompts.repair_system,
         user=domain.prompts.repair_user_template.format(
@@ -47,15 +51,10 @@ async def repair_parser(
             html_sample=page.html[: cfg.page_sample_chars],
         ),
         settings=cfg,
+        json_schema=generated_parser_json_schema(known_checks),
+        schema_name="generated_parser",
     )
-    # Preserve identity fields if the model omits them.
-    payload.setdefault("name", name)
-    payload.setdefault("url_pattern", url_pattern)
-    payload.setdefault("page_kind", page_kind)
-    return GeneratedParser.model_validate(
-        normalize_generated_payload(
-            payload,
-            known_checks=known_checks_for_domain(domain),
-            default_required_fields=domain.default_required_fields,
-        )
+    return ensure_minimal_validations(
+        GeneratedParser.model_validate(payload),
+        required_fields=domain.default_required_fields,
     )
