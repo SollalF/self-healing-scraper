@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from self_healing_scraper.models import (
+    CachedRun,
     GeneratedParser,
     ParserDefinition,
     ParserStatus,
@@ -42,9 +43,10 @@ class _MemoryRecord:
 class InMemoryParserStore:
     """Simple store for tests and smoke scripts."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, reuse_cached_runs: bool = True) -> None:
         self.parsers: list[_MemoryRecord] = []
         self.runs: list[dict[str, Any]] = []
+        self.reuse_cached_runs = reuse_cached_runs
 
     async def list_candidates(
         self, statuses: list[str] | None = None
@@ -149,3 +151,17 @@ class InMemoryParserStore:
         }
         self.runs.append(run)
         return run
+
+    async def find_cached_run(self, url: str, *, page_kind: str) -> CachedRun | None:
+        """Reuse the newest successful run that produced items, with no expiry."""
+        if not self.reuse_cached_runs:
+            return None
+        for run in reversed(self.runs):
+            if run["url"] == url and run["success"] and run["items"]:
+                parser_id = run["parser_id"]
+                return CachedRun(
+                    items=list(run["items"]),
+                    parser_id=str(parser_id) if parser_id else None,
+                    parser_version=run["parser_version"],
+                )
+        return None

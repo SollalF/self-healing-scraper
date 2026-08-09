@@ -78,6 +78,14 @@ class GeneratedParser(BaseModel):
     validations: ValidationSuite
 
 
+class CachedRun(BaseModel):
+    """A stored successful run a `ParserStore` offers up for reuse."""
+
+    items: list[dict[str, Any]]
+    parser_id: str | None = None
+    parser_version: int | None = None
+
+
 class ScrapeResult(BaseModel):
     url: str
     items: list[dict[str, Any]]
@@ -86,3 +94,4 @@ class ScrapeResult(BaseModel):
     created_parser: bool = False
     repaired: bool = False
     attempts: int = 1
+    from_cache: bool = False

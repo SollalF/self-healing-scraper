@@ -6,7 +6,9 @@
 
 Generic self-healing declarative web scraper. Pass a URL and a domain config; the engine looks up a stored parser by URL regex, creates one with AI if missing, executes CSS extractors, validates items, and repairs the parser when checks fail.
 
-Persistence is **not** included — inject a [`ParserStore`](src/self_healing_scraper/store.py) implementation (SQL, memory, etc.).
+Persistence is **not** included — inject a [`ParserStore`](src/self_healing_scraper/store.py) implementation (SQL, memory, etc.). Stores also decide when a
+previously scraped page can be served from storage instead of re-scraped; see
+[Reusing stored results](#reusing-stored-results).
 
 ## Install
 
@@ -43,6 +45,7 @@ domain = ScrapeDomain(
     default_required_fields=["title", "url"],
 )
 
+
 async def main() -> None:
     store = InMemoryParserStore()
     result = await scrape_url(
@@ -52,7 +55,34 @@ async def main() -> None:
     )
     print(result.items)
 
+
 asyncio.run(main())
+```
+
+## Reusing stored results
+
+Article pages are usually immutable, so re-scraping one wastes a fetch and an
+LLM budget. Before fetching, the engine asks the store whether it already has a
+usable run for the URL:
+
+- Only page kinds listed in `settings.cached_page_kinds` are eligible — by
+  default just `article`, since listings gain new items constantly.
+- The store decides whether a stored run is still good. `find_cached_run`
+  returning a [`CachedRun`](src/self_healing_scraper/models.py) skips the fetch,
+  the parser execution, and the validation loop entirely; returning `None`
+  scrapes as normal. Age limits and invalidation on parser upgrades are the
+  store's policy, not the engine's.
+- A reused result comes back with `from_cache=True` and `attempts=0`, and no new
+  run is recorded.
+- Pass `force_refresh=True` to `scrape_url` / `scrape_urls` to always hit the
+  network.
+
+```python
+result = await scrape_url(url, store=store, domain=domain)
+if result.from_cache:
+    print("served from a stored run")
+
+fresh = await scrape_url(url, store=store, domain=domain, force_refresh=True)
 ```
 
 ## Configuration
@@ -70,14 +100,15 @@ settings = Settings(
 )
 ```
 
-| Field | Default | Purpose |
-|-------|---------|---------|
-| `llm_api_key` | `""` | Required to create/repair parsers |
-| `llm_model` | `gpt-4o` | Model for parser agent |
-| `llm_base_url` | `""` | OpenAI-compatible API base |
-| `max_repair_attempts` | `3` | Self-heal loop limit |
-| `crawl_timeout_ms` | `30000` | Page load timeout |
-| `page_sample_chars` | `12000` | HTML sample size sent to the AI |
+| Field                 | Default  | Purpose                           |
+| --------------------- | -------- | --------------------------------- |
+| `llm_api_key`         | `""`     | Required to create/repair parsers |
+| `llm_model`           | `gpt-4o` | Model for parser agent            |
+| `llm_base_url`        | `""`     | OpenAI-compatible API base        |
+| `max_repair_attempts` | `3`      | Self-heal loop limit              |
+| `crawl_timeout_ms`    | `30000`  | Page load timeout                 |
+| `page_sample_chars`   | `12000`  | HTML sample size sent to the AI   |
+| `cached_page_kinds`   | `{"article"}` | Page kinds allowed to reuse a stored run |
 
 Applications (e.g. news scrapers) typically load these from their own `.env` /
 settings layer and pass them into `scrape_url`.

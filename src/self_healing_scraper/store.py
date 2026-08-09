@@ -7,6 +7,7 @@ import uuid
 from typing import Any, Protocol, runtime_checkable
 
 from self_healing_scraper.models import (
+    CachedRun,
     GeneratedParser,
     ParserDefinition,
     ParserStatus,
@@ -78,6 +79,16 @@ class ParserStore(Protocol):
         page_sample: str | None = None,
         error_message: str | None = None,
     ) -> Any: ...
+
+    async def find_cached_run(self, url: str, *, page_kind: str) -> CachedRun | None:
+        """Return a stored run to reuse for this URL, or ``None`` to scrape it.
+
+        The store owns the reuse policy: age limits, whether a parser version
+        bump invalidates old runs, per-`page_kind` rules, and so on. Returning a
+        run makes the engine skip fetching and parsing entirely, so only return
+        one when the stored items are still considered good.
+        """
+        ...
 
     def definition_of(self, record: ParserRecordLike) -> ParserDefinition: ...
 

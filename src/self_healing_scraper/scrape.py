@@ -47,12 +47,12 @@ async def _fetch_or_raise(
 async def _ensure_parser(
     url: str,
     *,
+    record: ParserRecordLike | None,
     store: ParserStore,
     domain: ScrapeDomain,
     settings: Settings,
 ) -> tuple[ParserRecordLike, PageContent, bool]:
     """Return (record, page, created_parser), creating a parser when none exists."""
-    record = await store.find_by_url(url)
     definition = store.definition_of(record) if record else None
     page = await _fetch_or_raise(url, definition=definition, settings=settings)
 
@@ -73,11 +73,13 @@ def _build_result(
     *,
     url: str,
     items: list[dict[str, Any]],
-    record: ParserRecordLike,
+    parser_id: str | None,
+    parser_version: int | None,
     domain: ScrapeDomain,
-    created_parser: bool,
-    repaired: bool,
-    attempts: int,
+    created_parser: bool = False,
+    repaired: bool = False,
+    attempts: int = 1,
+    from_cache: bool = False,
 ) -> ScrapeResult:
     result_items = items
     if domain.item_builder is not None:
@@ -85,11 +87,44 @@ def _build_result(
     return ScrapeResult(
         url=url,
         items=result_items,
-        parser_id=str(record.id),
-        parser_version=record.version,
+        parser_id=parser_id,
+        parser_version=parser_version,
         created_parser=created_parser,
         repaired=repaired,
         attempts=attempts,
+        from_cache=from_cache,
+    )
+
+
+async def _cached_result(
+    url: str,
+    *,
+    record: ParserRecordLike,
+    store: ParserStore,
+    domain: ScrapeDomain,
+    settings: Settings,
+) -> ScrapeResult | None:
+    """Reuse a stored run for this URL when the store offers one."""
+    if record.page_kind not in settings.cached_page_kinds:
+        return None
+
+    cached = await store.find_cached_run(url, page_kind=record.page_kind)
+    if cached is None:
+        return None
+
+    logger.info("Reusing stored %s result for %s", record.page_kind, url)
+    return _build_result(
+        url=url,
+        items=cached.items,
+        parser_id=cached.parser_id if cached.parser_id is not None else str(record.id),
+        parser_version=(
+            cached.parser_version
+            if cached.parser_version is not None
+            else record.version
+        ),
+        domain=domain,
+        attempts=0,
+        from_cache=True,
     )
 
 
@@ -118,7 +153,8 @@ async def _persist_success(
     return _build_result(
         url=url,
         items=items,
-        record=record,
+        parser_id=str(record.id),
+        parser_version=record.version,
         domain=domain,
         created_parser=created_parser,
         repaired=repaired,
@@ -195,13 +231,27 @@ async def scrape_url(
     store: ParserStore,
     domain: ScrapeDomain,
     settings: Settings | None = None,
+    force_refresh: bool = False,
 ) -> ScrapeResult:
-    """Scrape a URL using a stored or newly created self-healing parser."""
+    """Scrape a URL using a stored or newly created self-healing parser.
+
+    Pages whose kind is in ``settings.cached_page_kinds`` reuse a stored run
+    when the store returns one, skipping the fetch. Pass ``force_refresh`` to
+    always hit the network.
+    """
     cfg = settings or Settings()
     url = normalize_url(url)
 
+    record = await store.find_by_url(url)
+    if record is not None and not force_refresh:
+        cached = await _cached_result(
+            url, record=record, store=store, domain=domain, settings=cfg
+        )
+        if cached is not None:
+            return cached
+
     record, page, created_parser = await _ensure_parser(
-        url, store=store, domain=domain, settings=cfg
+        url, record=record, store=store, domain=domain, settings=cfg
     )
     repaired = False
     attempts = 0
@@ -292,9 +342,18 @@ async def scrape_urls(
     store: ParserStore,
     domain: ScrapeDomain,
     settings: Settings | None = None,
+    force_refresh: bool = False,
 ) -> list[ScrapeResult]:
     cfg = settings or Settings()
     results: list[ScrapeResult] = []
     for url in urls:
-        results.append(await scrape_url(url, store=store, domain=domain, settings=cfg))
+        results.append(
+            await scrape_url(
+                url,
+                store=store,
+                domain=domain,
+                settings=cfg,
+                force_refresh=force_refresh,
+            )
+        )
     return results

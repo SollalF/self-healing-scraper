@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict
 
+from self_healing_scraper.models import PageKind
+
 
 class Settings(BaseModel):
     """Runtime knobs passed into scrape/fetch/LLM helpers.
@@ -18,3 +20,7 @@ class Settings(BaseModel):
     max_repair_attempts: int = 3
     crawl_timeout_ms: int = 30_000
     page_sample_chars: int = 12_000
+
+    # Listings gain new items constantly, so only article pages are reusable by
+    # default. The store still has the final say on whether a run is fresh.
+    cached_page_kinds: frozenset[str] = frozenset({PageKind.ARTICLE.value})
