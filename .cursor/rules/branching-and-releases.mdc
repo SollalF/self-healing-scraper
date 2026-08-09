@@ -1,0 +1,41 @@
+---
+description: Land changes on main via pull request so release-please versioning and CI gating stay reliable
+alwaysApply: true
+---
+
+# Never commit or push directly to main
+
+`main` is the release branch. `release-please` parses every commit that lands on
+it to decide the next version and write `CHANGELOG.md`, and CI only gates
+`pull_request` events. Always work on a branch and open a PR.
+
+```bash
+# BAD: unreviewed, CI-ungated commits land straight on the release branch
+git commit -m "feat: add cached run lookup" && git push origin main
+
+# GOOD
+git switch -c feat/cached-run-lookup
+git commit -m "feat: add cached run lookup"
+git push -u origin HEAD
+gh pr create --title "feat: add cached run lookup" --body "..."
+```
+
+Never force-push `main`, and never hand-edit `version` in `pyproject.toml` or
+`.release-please-manifest.json` — release-please owns both.
+
+## Why this matters for releases
+
+- Squash-merge so the PR title becomes the single conventional commit on `main`.
+  Pushing a branch's raw commits means each one is parsed, which clutters
+  `CHANGELOG.md` and can bump the version differently than intended.
+- The PR title must follow Conventional Commits, since that is what
+  release-please reads. See `CONTRIBUTING.md` for types and their bump effects;
+  use `!` or a `BREAKING CHANGE:` footer for breaking changes.
+- CI runs `pre-commit run --all-files` and `pytest` on `pull_request`. Pushing
+  to `main` skips that gate, so a broken commit becomes immediately releasable.
+
+## Releasing
+
+release-please opens a Release PR on `main` once releasable commits land.
+Merging that PR tags the GitHub release and publishes to PyPI. That PR is the
+only thing that should change the version or `CHANGELOG.md`.

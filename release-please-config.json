@@ -5,8 +5,7 @@
       "release-type": "python",
       "package-name": "self-healing-scraper",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true
+      "bump-minor-pre-major": true
     }
   }
 }
