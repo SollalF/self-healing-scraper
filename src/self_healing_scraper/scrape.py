@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from self_healing_scraper.agent.create_parser import create_parser
+from self_healing_scraper.agent.html_sample import html_sample
 from self_healing_scraper.agent.repair_parser import repair_parser
 from self_healing_scraper.domain import ScrapeDomain
 from self_healing_scraper.fetch.crawler import fetch_page
@@ -148,7 +149,7 @@ async def _persist_success(
         parser_version=record.version,
         success=True,
         items=items,
-        page_sample=page.html[: settings.page_sample_chars],
+        page_sample=html_sample(page.html, settings.page_sample_chars),
     )
     return _build_result(
         url=url,
@@ -184,7 +185,7 @@ async def _persist_failure(
         success=False,
         items=items,
         validation_errors=last_errors,
-        page_sample=page.html[: settings.page_sample_chars],
+        page_sample=html_sample(page.html, settings.page_sample_chars),
         error_message="Validation failed after max repair attempts",
     )
 
