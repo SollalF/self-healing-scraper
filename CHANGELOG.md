@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1](https://github.com/SollalF/self-healing-scraper/compare/self-healing-scraper-v0.3.0...self-healing-scraper-v0.3.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* share content-aware HTML sampling between create and repair ([#4](https://github.com/SollalF/self-healing-scraper/issues/4)) ([ea3a2a5](https://github.com/SollalF/self-healing-scraper/commit/ea3a2a50a9f5ea402b0a6f926f171bd029d1027f))
+
 ## [0.3.0](https://github.com/SollalF/self-healing-scraper/compare/self-healing-scraper-v0.2.0...self-healing-scraper-v0.3.0) (2026-08-09)
 
 
