@@ -7,7 +7,7 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from self_healing_scraper.agent.create_parser import create_parser
-from self_healing_scraper.agent.html_sample import html_sample
+from self_healing_scraper.agent.page_sample import sample_page_for_llm
 from self_healing_scraper.agent.repair_parser import repair_parser
 from self_healing_scraper.domain import ScrapeDomain
 from self_healing_scraper.fetch.crawler import fetch_page
@@ -149,7 +149,7 @@ async def _persist_success(
         parser_version=record.version,
         success=True,
         items=items,
-        page_sample=html_sample(page.html, settings.page_sample_chars),
+        page_sample=sample_page_for_llm(page, settings).html_sample,
     )
     return _build_result(
         url=url,
@@ -185,7 +185,7 @@ async def _persist_failure(
         success=False,
         items=items,
         validation_errors=last_errors,
-        page_sample=html_sample(page.html, settings.page_sample_chars),
+        page_sample=sample_page_for_llm(page, settings).html_sample,
         error_message="Validation failed after max repair attempts",
     )
 
@@ -264,8 +264,8 @@ async def scrape_url(
         definition = store.definition_of(record)
         validations = store.validations_of(record)
 
-        # Refresh page with current wait hints after create/repair.
-        if attempts > 1 or created_parser:
+        # Refresh page with current wait hints after repair.
+        if attempts > 1:
             page = await fetch_page(url, definition=definition, settings=cfg)
             if not page.success:
                 last_errors = [{"message": page.error_message or "fetch failed"}]

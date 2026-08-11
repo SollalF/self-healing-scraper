@@ -8,8 +8,8 @@ from self_healing_scraper.agent.create_parser import (
     ensure_minimal_validations,
     known_checks_for_domain,
 )
-from self_healing_scraper.agent.html_sample import html_sample_for_repair
 from self_healing_scraper.agent.llm import complete_json
+from self_healing_scraper.agent.page_sample import sample_page_for_llm
 from self_healing_scraper.agent.schema import generated_parser_json_schema
 from self_healing_scraper.domain import ScrapeDomain
 from self_healing_scraper.models import (
@@ -43,19 +43,15 @@ async def repair_parser(
         "validations": validations.model_dump(),
     }
     known_checks = known_checks_for_domain(domain)
-    markdown = (page.markdown or "")[: cfg.page_sample_chars]
+    samples = sample_page_for_llm(page, cfg, definition=definition)
     payload = await complete_json(
         system=domain.prompts.repair_system,
         user=domain.prompts.repair_user_template.format(
             url=page.url,
-            current_parser=json.dumps(current, indent=2),
-            failures=validation_result.model_dump_json(indent=2),
-            html_sample=html_sample_for_repair(
-                page.html,
-                cfg.page_sample_chars,
-                definition=definition,
-            ),
-            markdown_sample=markdown,
+            current_parser=json.dumps(current, separators=(",", ":")),
+            failures=validation_result.model_dump_json(),
+            html_sample=samples.html_sample,
+            markdown_sample=samples.markdown_sample,
         ),
         settings=cfg,
         json_schema=generated_parser_json_schema(known_checks),
