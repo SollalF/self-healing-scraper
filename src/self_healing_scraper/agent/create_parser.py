@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
+from self_healing_scraper.agent.html_sample import html_sample
 from self_healing_scraper.agent.llm import complete_json
 from self_healing_scraper.agent.schema import generated_parser_json_schema
 from self_healing_scraper.domain import ScrapeDomain
@@ -25,20 +26,6 @@ def _page_kind_hint(url: str) -> str:
         or path.count("/") >= 3
     )
     return PageKind.ARTICLE.value if articleish else PageKind.LISTING.value
-
-
-def _html_sample(html: str, limit: int) -> str:
-    """Prefer the main content region so chrome/nav does not eat the sample budget."""
-    lowered = html.lower()
-    for marker in ("<main", 'role="main"', 'id="content"', 'class="content"'):
-        idx = lowered.find(marker)
-        if idx != -1:
-            start = max(0, idx - 200)
-            return html[start : start + limit]
-    # Fall back to the middle/end of the document where listings often live.
-    if len(html) > limit:
-        return html[-(limit):]
-    return html
 
 
 def ensure_minimal_validations(
@@ -70,7 +57,7 @@ async def create_parser(
     cfg = settings or Settings()
     # Markdown from Crawl4AI is usually denser for listings than truncated HTML.
     markdown = (page.markdown or "")[: cfg.page_sample_chars]
-    sample = _html_sample(page.html, min(cfg.page_sample_chars, 8000))
+    sample = html_sample(page.html, min(cfg.page_sample_chars, 8000))
     known_checks = known_checks_for_domain(domain)
     payload = await complete_json(
         system=domain.prompts.create_system,

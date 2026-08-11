@@ -110,7 +110,7 @@ def sample_domain() -> ScrapeDomain:
             create_system="create",
             create_user_template="{url} {page_kind_hint} {html_sample} {markdown_sample}",
             repair_system="repair",
-            repair_user_template="{url} {current_parser} {failures} {html_sample}",
+            repair_user_template="{url} {current_parser} {failures} {html_sample} {markdown_sample}",
         ),
         default_required_fields=["title", "url"],
     )
