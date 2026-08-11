@@ -107,7 +107,7 @@ settings = Settings(
 | `llm_base_url`        | `""`     | OpenAI-compatible API base        |
 | `max_repair_attempts` | `3`      | Self-heal loop limit              |
 | `crawl_timeout_ms`    | `30000`  | Page load timeout                 |
-| `page_sample_chars`   | `12000`  | HTML sample size sent to the AI   |
+| `page_sample_chars`   | `12000`  | Combined HTML + markdown budget for LLM prompts |
 | `cached_page_kinds`   | `{"article"}` | Page kinds allowed to reuse a stored run |
 
 Applications (e.g. news scrapers) typically load these from their own `.env` /

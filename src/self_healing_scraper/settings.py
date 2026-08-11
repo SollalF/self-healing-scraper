@@ -19,7 +19,7 @@ class Settings(BaseModel):
     llm_base_url: str = ""
     max_repair_attempts: int = 3
     crawl_timeout_ms: int = 30_000
-    page_sample_chars: int = 12_000
+    page_sample_chars: int = 12_000  # combined HTML + markdown budget for LLM prompts
 
     # Listings gain new items constantly, so only article pages are reusable by
     # default. The store still has the final say on whether a run is fresh.

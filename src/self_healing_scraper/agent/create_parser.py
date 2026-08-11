@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from self_healing_scraper.agent.html_sample import html_sample
 from self_healing_scraper.agent.llm import complete_json
+from self_healing_scraper.agent.page_sample import sample_page_for_llm
 from self_healing_scraper.agent.schema import generated_parser_json_schema
 from self_healing_scraper.domain import ScrapeDomain
 from self_healing_scraper.models import (
@@ -55,17 +55,15 @@ async def create_parser(
     settings: Settings | None = None,
 ) -> GeneratedParser:
     cfg = settings or Settings()
-    # Markdown from Crawl4AI is usually denser for listings than truncated HTML.
-    markdown = (page.markdown or "")[: cfg.page_sample_chars]
-    sample = html_sample(page.html, min(cfg.page_sample_chars, 8000))
+    samples = sample_page_for_llm(page, cfg)
     known_checks = known_checks_for_domain(domain)
     payload = await complete_json(
         system=domain.prompts.create_system,
         user=domain.prompts.create_user_template.format(
             url=page.url,
             page_kind_hint=_page_kind_hint(page.url),
-            html_sample=sample,
-            markdown_sample=markdown,
+            html_sample=samples.html_sample,
+            markdown_sample=samples.markdown_sample,
         ),
         settings=cfg,
         json_schema=generated_parser_json_schema(known_checks),
